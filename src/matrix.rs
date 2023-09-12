@@ -71,6 +71,21 @@ impl Matrix<f64> {
 		}
 	}
 
+	/// Multiply two matrices with the The Hadamard product. The result is stored in the caller.
+	/// 
+	/// # Argument
+	/// * `self` - caller Matrix, will be overwirtten 
+	/// * `mb` - self will be multiply by this Matrx
+	/// 
+	/// Matrix should have the same dimensions
+	pub fn multiply_by_mut(&mut self, mb : &Matrix<f64>){
+			assert!(self.rows == mb.rows && self.cols == mb.cols);
+
+			for (i, elem) in &mut self.values.iter_mut().enumerate() {
+				*elem = *elem * mb.values[i];
+			}
+	}
+
 	pub fn apply<T>(&self, function : fn(&Vec<f64>)->T)->T
 	{
 		function(&self.values)
@@ -198,6 +213,85 @@ mod tests {
 
 		let precision : f64 = result.values.iter().zip(confirm.iter()).map(|(&a,&b)|(a-b).abs()).sum();
 		assert!(precision==0.0);
-
 	}
+
+
+	#[test]
+	fn matrix_multiply(){
+		let mut ma = Matrix::new(3, 3);
+		let mut mb = Matrix::new(3, 3);
+		let confirm = vec![
+			7.0,
+			14.0,
+			21.0,
+			32.0,
+			40.0,
+			48.0,
+			21.0,
+			24.0,
+			27.0,
+		];
+
+		matrix_at!(0,0,ma) = 7.0;
+		matrix_at!(0,1,ma) = 7.0;
+		matrix_at!(0,2,ma) = 7.0;
+		matrix_at!(1,0,ma) = 8.0;
+		matrix_at!(1,1,ma) = 8.0;
+		matrix_at!(1,2,ma) = 8.0;
+		matrix_at!(2,0,ma) = 3.0;
+		matrix_at!(2,1,ma) = 3.0;
+		matrix_at!(2,2,ma) = 3.0;
+
+
+		matrix_at!(0,0,mb) = 1.0;
+		matrix_at!(0,1,mb) = 2.0;
+		matrix_at!(0,2,mb) = 3.0;
+		matrix_at!(1,0,mb) = 4.0;
+		matrix_at!(1,1,mb) = 5.0;
+		matrix_at!(1,2,mb) = 6.0;
+		matrix_at!(2,0,mb) = 7.0;
+		matrix_at!(2,1,mb) = 8.0;
+		matrix_at!(2,2,mb) = 9.0;
+
+		ma.multiply_by_mut(&mb);
+
+
+		let precision : f64 = ma.values.iter().zip(confirm.iter()).map(|(&a,&b)|(a-b).abs()).sum();
+		assert!(precision==0.0);
+		
+	}
+
+
+	#[test]
+	#[should_panic]
+	fn matrix_multiply_wrong_dimension_1(){
+		let mut ma = Matrix::new(2, 3);
+		let mb = Matrix::new(3, 3);
+		ma.multiply_by_mut(&mb);
+	}
+
+	#[test]
+	#[should_panic]
+	fn matrix_multiply_wrong_dimension_2(){
+		let mut ma = Matrix::new(3, 2);
+		let mb = Matrix::new(3, 3);
+		ma.multiply_by_mut(&mb);
+	}
+
+	#[test]
+	#[should_panic]
+	fn matrix_multiply_wrong_dimension_3(){
+		let mut ma = Matrix::new(3, 3);
+		let mb = Matrix::new(2, 3);
+		ma.multiply_by_mut(&mb);
+	}
+
+	#[test]
+	#[should_panic]
+	fn matrix_multiply_wrong_dimension_4(){
+		let mut ma = Matrix::new(3, 3);
+		let mb = Matrix::new(3, 2);
+		ma.multiply_by_mut(&mb);
+	}
+
 }
