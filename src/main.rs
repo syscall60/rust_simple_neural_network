@@ -1,26 +1,24 @@
-use rust_simple_nn::matrix::*;
+use rust_simple_nn::nn::*;
 
 
-fn add_one(vector :&mut Vec<f64>)->(){
-	for elem in vector {
-		*elem+=1.0;
-	}
-}
-
-fn sum_all(vector :&Vec<f64>) -> f64{
-
-	vector.iter().sum()
-}
 
 fn main(){
-	let mut a = Matrix::new_radom_gen_range(2, 2, 0.0, 10.0);
-	a.dump();
-	println!("===============");
 
-	a.apply_mut(add_one);
-	a.dump();
 
-	dbg!(a.apply(sum_all));
+	let mut neural_network = NeuralNetWork::new(
+		&vec![3,3,8,4],
+		"default",
+		"default",
+		"default"
+	);
+
+	neural_network.input(&vec![1.0,2.0,3.0]);
+	neural_network.print_output();
+	println!("===========================");
+	neural_network.input(&vec![1.0,2.0,3.01]);
+	neural_network.print_output();
+
+
 }
 
 

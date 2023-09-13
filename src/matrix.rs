@@ -18,24 +18,30 @@ pub struct Matrix<T>{
 
 impl Matrix<f64> {
 
-	pub fn new(row : usize,col : usize) -> Matrix<f64>{
+
+	/// Create an zeroed Matrix of dim (rows,col)
+	/// 
+	/// # Argument
+	/// * `rows` - number of rows
+	/// * `cols` - number of columns
+	pub fn new(rows : usize,cols : usize) -> Matrix<f64>{
 		Matrix{
-			rows: row,
-			cols: col,
-			values: vec![0.0;row*col],
+			rows: rows,
+			cols: cols,
+			values: vec![0.0;rows*cols],
 		}
 	}
 
-	pub fn new_radom_gen_range(row : usize,col : usize, min	: f64, max: f64) -> Matrix<f64>{
+	pub fn new_radom_gen_range(rows : usize,cols : usize, min : f64, max: f64) -> Matrix<f64>{
 		let mut values = vec![];
 		let mut rng = rand::thread_rng();
-		for _ in 0..row*col {
+		for _ in 0..rows*cols {
 			values.push(rng.gen_range(min..max));
 		}
 
 		Matrix{
-			rows: row,
-			cols: col,
+			rows: rows,
+			cols: cols,
 			values,
 		}
 	}
@@ -45,9 +51,9 @@ impl Matrix<f64> {
 	}
 
 	pub fn dot(&self,dest : &mut Matrix<f64>,mb :&Matrix<f64>) {
-		assert!(self.cols == mb.rows);
-		assert!(dest.cols == mb.cols && dest.rows == self.rows);
-		assert!(self.cols!=0 && mb.cols!=0);
+		assert!(self.cols == mb.rows,"matrix not suited for dot prodcut");
+		assert!(dest.cols == mb.cols && dest.rows == self.rows,"destination matrix doesn'have suited dimension for dot product");
+		assert!(self.cols!=0 && mb.cols!=0,"Empty matrix");
 
 
 		for j in 0..dest.cols {
@@ -61,12 +67,40 @@ impl Matrix<f64> {
 		}
 	}
 
+
+	pub fn dot_vec(&self,dest : &mut Matrix<f64>,mb :&Vec<f64>) {
+		assert!(self.cols == mb.len(),"matrix not suited for dot prodcut");
+		assert!(dest.cols == 1 && dest.rows == self.rows,"destination matrix doesn'have suited dimension for dot product");
+		assert!(self.cols!=0,"Empty matrix");
+
+
+
+		for i in 0..dest.rows {
+			matrix_at!(i,0,dest)=0.0;
+			for k in 0..self.cols {
+				matrix_at!(i,0,dest) += matrix_at!(i,k,self) * mb[k];
+			}
+		}
+
+	}
+
 	pub fn add(&self,dest : &mut Matrix<f64>,mb :&Matrix<f64>) {
-		assert!(self.cols == mb.cols && self.rows == mb.rows);
+		assert!(self.cols == mb.cols && self.rows == mb.rows,"matrix dimensions not equals");
 
 		for i in 0..self.rows {
 			for j in 0..self.cols {
 				matrix_at!(i,j,dest) = matrix_at!(i,j,self)+matrix_at!(i,j,mb);
+			}
+		}
+	}
+
+
+	pub fn add_mut(&mut self,mb :&Matrix<f64>) {
+		assert!(self.cols == mb.cols && self.rows == mb.rows,"matrix dimensions not equals");
+
+		for i in 0..self.rows {
+			for j in 0..self.cols {
+				matrix_at!(i,j,self) = matrix_at!(i,j,self)+matrix_at!(i,j,mb);
 			}
 		}
 	}
@@ -79,21 +113,49 @@ impl Matrix<f64> {
 	/// 
 	/// Matrix should have the same dimensions
 	pub fn multiply_by_mut(&mut self, mb : &Matrix<f64>){
-			assert!(self.rows == mb.rows && self.cols == mb.cols);
+			assert!(self.rows == mb.rows && self.cols == mb.cols,"matrix dimensions not equals");
 
 			for (i, elem) in &mut self.values.iter_mut().enumerate() {
 				*elem = *elem * mb.values[i];
 			}
 	}
 
+	/// Apply a function to an immutable matrix, used to calculate an output
+	/// 
+	/// # Argument
+	/// * `self` - caller Matrix, immutable 
+	/// * `function` - the function that will be applied
 	pub fn apply<T>(&self, function : fn(&Vec<f64>)->T)->T
 	{
 		function(&self.values)
 	}
 
+	/// Apply a function to an mutable matrix, can output a value and mutate the caller
+	/// 
+	/// # Argument
+	/// * `self` - caller Matrix, can be overwritten
+	/// * `function` - the function that will be applied
 	pub fn apply_mut<T>(&mut self, function : fn(&mut Vec<f64>)->T)->T
 	{
 		function(&mut self.values)
+	}
+
+	/// Apply a function to each element of an immuable matrix and store the result into a new Matrix.
+	/// 
+	/// # Argument
+	/// * `self` - caller Matrix, can be overwritten
+	/// * `dest` - the sotring matrix
+	/// * `function` - the function that will be applied
+	pub fn apply_to(&self, dest : &mut Matrix<f64>,function : fn(f64)->f64)
+	{
+		//the storing matrix should be larger than the caller
+		assert!(dest.values.len()>= self.values.len());
+
+		for (elem,res) in self.values.iter().zip(&mut dest.values)
+		{
+			*res = function(*elem);
+		}
+		
 	}
 
 	pub fn dump(&self){
@@ -108,10 +170,16 @@ impl Matrix<f64> {
 
 
 
+/* -------------------------------------------------------------------------- */
+/*                                    Tests                                   */
+/* -------------------------------------------------------------------------- */
+
 #[cfg(test)]
 mod tests {
 	use super::*;
 
+
+	/* ---------------------------- Dot product test ---------------------------- */
 	#[test]
     fn new_dot_result_dim_test() {
 		let ma = Matrix::new(2, 2);
@@ -191,6 +259,7 @@ mod tests {
 	}
 
 
+	/* -------------------------------- Add test -------------------------------- */
 	#[test]
 	fn matrix_add_test(){
 		let mut ma = Matrix::new(2, 2);
@@ -216,6 +285,7 @@ mod tests {
 	}
 
 
+	/* -------------------- Multiply test (Hadamard product) -------------------- */
 	#[test]
 	fn matrix_multiply(){
 		let mut ma = Matrix::new(3, 3);
